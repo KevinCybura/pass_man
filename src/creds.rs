@@ -1,4 +1,3 @@
-
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -12,11 +11,10 @@ impl Cred {
             password: String::new(),
         }
     }
-    // fn def() -> Cred {}
 }
 pub fn new_user() {
     let mut cred = Cred::new();
-    println!("Enter password: ");
+    println!("Enter new password: ");
     match io::stdin().read_line(&mut cred.password) {
         Ok(_) => {}
         Err(e) => {
@@ -42,5 +40,4 @@ pub fn get_creds() -> Result<File, io::Error> {
         println!("{:?}", l);
     }
     Ok(file)
-    // Ok(User::new("", ""))
 }
