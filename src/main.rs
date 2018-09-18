@@ -1,22 +1,10 @@
 extern crate clap;
-use clap::{App, Arg, ArgMatches, AppSettings, SubCommand};
-use std::fs::File;
+
+mod creds;
+
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::io;
-use std::io::prelude::*;
 use std::path::Path;
-
-struct Cred {
-    password: String,
-}
-
-impl Cred {
-    fn new() -> Cred {
-        Cred {
-            password: String::new(),
-        }
-    }
-    // fn def() -> Cred {}
-}
 
 // struct User {
 //     user: String,
@@ -33,7 +21,7 @@ impl Cred {
 // }
 
 fn main() {
-    let mut creds = Cred::new();
+    let mut creds = creds::Cred::new();
     if Path::new("creds.txt").exists() {
         println!("Enter password: ");
         match io::stdin().read_line(&mut creds.password) {
@@ -46,7 +34,7 @@ fn main() {
         match io::stdin().read_line(&mut input) {
             Ok(_) => match input.to_lowercase().trim() {
                 "y" => {
-                    new_user();
+                    creds::new_user();
                 }
                 "n" => {
                     std::process::exit(1);
@@ -110,40 +98,4 @@ fn parse_arg<'a>() -> ArgMatches<'a> {
                     .takes_value(true),
             ),
         ).get_matches()
-}
-fn new_user() {
-    let mut cred = Cred::new();
-    println!("Enter password: ");
-    match io::stdin().read_line(&mut cred.password) {
-        Ok(_) => {}
-        Err(e) => {
-            println!("Error {}", e);
-        }
-    }
-    let mut file = create_file();
-    file.write_fmt(format_args!("password: {}", cred.password))
-        .unwrap();
-}
-
-fn create_file() -> File {
-    return File::create("creds.txt").unwrap();
-}
-
-fn get_creds() -> Result<File, std::io::Error> {
-    let mut file = match File::open("creds.txt") {
-        Ok(file) => file,
-        Err(_) => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Not found",
-            ))
-        }
-    };
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    for l in contents.lines() {
-        println!("{:?}", l);
-    }
-    Ok(file)
-    // Ok(User::new("", ""))
 }
