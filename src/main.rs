@@ -1,4 +1,7 @@
+#[macro_use]
+extern crate log;
 extern crate clap;
+extern crate env_logger;
 
 mod creds;
 
@@ -7,6 +10,7 @@ use std::io;
 use std::path::Path;
 
 fn main() {
+    env_logger::init();
     let args = parse_arg();
     let mut creds = creds::Cred::new();
     match args.subcommand_name() {
@@ -42,6 +46,11 @@ fn main() {
             }
         }
         Some("get") => {}
+        Some("site") => {
+            if !creds.login() {
+                return;
+            }
+        }
         _ => {}
     }
 }
@@ -71,20 +80,20 @@ fn parse_arg<'a>() -> ArgMatches<'a> {
                         .takes_value(true)
                         .required(true)
                         .help("the site"),
-                ).arg(
-                    Arg::with_name("usr")
-                        .short("u")
-                        .long("usr")
-                        .takes_value(true)
-                        .required(true)
-                        .help("the usrname"),
-                ).arg(
-                    Arg::with_name("pass")
-                        .short("p")
-                        .long("pass")
-                        .takes_value(true)
-                        .required(true)
-                        .help("the password"),
-                ),
+                )//.arg(
+                //     Arg::with_name("usr")
+                //         .short("u")
+                //         .long("usr")
+                //         .takes_value(true)
+                //         .required(true)
+                //         .help("the usrname"),
+                //)//.arg(
+                    // Arg::with_name("pass")
+                    //     .short("p")
+                    //     .long("pass")
+                    //     .takes_value(true)
+                    //     .required(true)
+                    //     .help("the password"),
+                // ),
         ).get_matches()
 }
