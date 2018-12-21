@@ -16,37 +16,30 @@ impl Cred {
 
     pub fn login(&mut self) -> bool {
         info!("login");
-        let mut file_creds = get_creds().unwrap();
+        let file_creds = get_creds().unwrap();
         print!("Enter password: ");
         io::stdout().flush().unwrap();
         match io::stdin().read_line(&mut self.password) {
             Ok(_) => {
-                // When using stdin when the user press enter a \n is also added.
-                match self.password.rfind('\n') {
-                    Some(n) => {
-                        debug!("found \\n pos: {}", n);
-                        self.password.remove(n);
-                    }
-                    None => {}
-                };
+                if let Some(n) = self.password.rfind('\n') {
+                    debug!("found \\n pos: {}", n);
+                    self.password.remove(n);
+                }
             }
             Err(e) => {
                 error!("Something went wrong with input: {}", e);
             }
         }
-        match file_creds.iter().find(|&word| {
+        file_creds.iter().find(|&word| {
             debug!("File pass: {:?}, Entered pass: {:?}", *word, self.password);
-            *word == self.password
-        }) {
-            Some(password) => {
-                debug!("Match password: {}", password);
+            if &self.password == word {
                 self.loggedin = true;
             }
-            None => {
-                error!("Incorrect password");
-                self.loggedin = false;
-
-            }
+            self.loggedin
+        });
+        if !self.loggedin {
+            info!("Incorrect Password: {}", self.password);
+            eprint!("Incorrect Password: {}", self.password)
         }
         self.loggedin
     }
@@ -66,7 +59,7 @@ pub fn new_user() {
 }
 
 pub fn initialize_file() -> File {
-    return File::create("creds.txt").unwrap();
+    File::create("creds.txt").unwrap()
 }
 
 pub fn get_creds() -> Result<Vec<String>, io::Error> {
@@ -82,14 +75,14 @@ pub fn get_creds() -> Result<Vec<String>, io::Error> {
     };
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
-    let file_creds = parse_file_creds(contents);
+    let file_creds = parse_file_creds(&contents);
     Ok(file_creds)
 }
 
-fn parse_file_creds(contents: String) -> Vec<String> {
+fn parse_file_creds(contents: &str) -> Vec<String> {
     let mut file_creds: Vec<String> = Vec::new();
     for line in contents.lines() {
-        let words: Vec<&str> = line.split(":").collect();
+        let words: Vec<&str> = line.split(':').collect();
         for i in 0..words.len() {
             if words[i].trim() == "password" {
                 file_creds.push(String::from(words[i].trim()));
