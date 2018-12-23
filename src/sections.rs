@@ -8,6 +8,17 @@ pub struct Site {
     username: String,
     password: String,
 }
+#[derive(Debug)]
+pub enum SectionsError {
+    InvalidCredentials,
+    FsError(std::io::Error),
+    MissingFile
+}
+impl From<std::io::Error> for SectionsError {
+    fn from(e: std::io::Error) -> SectionsError {
+        SectionsError::FsError(e)
+    }
+}
 pub struct Sections {
     pub creds: Cred,
     pub sites: Vec<Site>,
@@ -19,7 +30,7 @@ impl Sections {
             sites: Vec::new(),
         }
     }
-    pub fn write_sections(&self) -> Result<(), io::Error> {
+    pub fn write_sections(&self) -> Result<(), SectionsError> {
         let mut file = match File::open("creds.txt") {
             Ok(file) => {
                 info!("Opening file:");
@@ -27,7 +38,7 @@ impl Sections {
             }
             Err(e) => {
                 warn!("Unable to open file: {}", e);
-                return Err(e)
+                return Err(SectionsError::FsError(e));
             }
         };
         let mut buf = String::new();
@@ -61,7 +72,7 @@ pub fn initialize_file() -> File {
     File::create("creds.txt").unwrap()
 }
 
-pub fn get_creds() -> Result<Vec<String>, io::Error> {
+pub fn get_creds() -> Result<Vec<String>, SectionsError> {
     let mut file = match File::open("creds.txt") {
         Ok(file) => {
             info!("Opening file:");
@@ -69,16 +80,16 @@ pub fn get_creds() -> Result<Vec<String>, io::Error> {
         }
         Err(e) => {
             warn!("Unable to open file: {}", e);
-            return Err(e);
+            return Err(SectionsError::FsError(e));
         }
     };
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     let file_creds = parse_file_creds(&contents);
-    Ok(file_creds)
+    file_creds
 }
 
-fn parse_file_creds(contents: &str) -> Vec<String> {
+fn parse_file_creds(contents: &str) -> Result<Vec<String>, SectionsError> {
     let mut file_creds: Vec<String> = Vec::new();
     for line in contents.lines() {
         let words: Vec<&str> = line.split(':').collect();
@@ -87,10 +98,10 @@ fn parse_file_creds(contents: &str) -> Vec<String> {
                 file_creds.push(String::from(words[i].trim()));
                 file_creds.push(String::from(words[i + 1].trim()));
                 debug!("Filecreds: {:?}", file_creds);
-                return file_creds;
+                return Ok(file_creds);
             }
         }
     }
     error!("File creds empty: {:?}", file_creds);
-    file_creds
+    Err(SectionsError::MissingFile)
 }

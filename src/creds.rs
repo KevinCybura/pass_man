@@ -1,5 +1,6 @@
 use std::io;
 use std::io::prelude::*;
+use sections::SectionsError;
 pub struct Cred {
     pub password: String,
     pub loggedin: bool,
@@ -13,7 +14,7 @@ impl Cred {
         }
     }
 
-    pub fn login(&mut self, file: Vec<String>) {
+    pub fn login(&mut self, file: Vec<String>) -> Result<(), SectionsError> {
         info!("login");
         print!("Enter password: ");
         io::stdout().flush().unwrap();
@@ -37,7 +38,9 @@ impl Cred {
         });
         if !self.loggedin {
             info!("Incorrect Password: {}", self.password);
-            eprint!("Incorrect Password: {}", self.password)
+            eprint!("Incorrect Password: {}", self.password);
+            return Err(SectionsError::InvalidCredentials);
         }
+        Ok(())
     }
 }

@@ -54,10 +54,21 @@ fn main() {
         }
     }
     if args.is_present("site") {
-        match sections::get_creds() {
-            Ok(file) => section.creds.login(file),
+        let file = match sections::get_creds() {
+            Ok(file) => file,
             _ => std::process::exit(1),
+        };
+        match section.creds.login(file) {
+            Ok(_) => info!("Successful login"),
+            Err(e) => {
+                eprint!("Invalid credentials: {:?}", e);
+                debug!("Invalid credentials: {:?}", e);
+            }
         }
+        // match sections::get_creds() {
+        //     Ok(file) => section.creds.login(file),
+        //     _ => std::process::exit(1),
+        // }
         if section.creds.loggedin {
             // section.new_site(args.values_of("site"))
             println!("{:?}", args.value_of("site"));
