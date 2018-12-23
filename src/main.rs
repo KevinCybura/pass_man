@@ -4,16 +4,18 @@ extern crate clap;
 extern crate env_logger;
 
 mod creds;
+mod sections;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use std::io;
+use std::io::prelude::Write;
 use std::path::Path;
 
 fn main() {
     std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
     let args = parse_arg();
-    let mut creds = creds::Cred::new();
+    let mut section = sections::Sections::new();
     if args.is_present("new") {
         if Path::new("creds.txt").exists() {
             println!(
@@ -29,7 +31,10 @@ fn main() {
                     "y" => {
                         // Require the user to enter password here and validate that its corret
                         std::fs::remove_file("creds.txt").unwrap();
-                        creds::new_user();
+                        let user = sections::new_user();
+                        let mut file = sections::initialize_file();
+                        file.write_fmt(format_args!("password: {}", user.password))
+                            .unwrap();
                     }
                     "n" => {
                         std::process::exit(1);
@@ -42,11 +47,21 @@ fn main() {
                 Err(error) => eprintln!("Error: {}", error),
             }
         } else {
-            creds::new_user();
+            let user = sections::new_user();
+            let mut file = sections::initialize_file();
+            file.write_fmt(format_args!("password: {}", user.password))
+                .unwrap();
         }
     }
     if args.is_present("site") {
-        if creds.login() {}
+        match sections::get_creds() {
+            Ok(file) => section.creds.login(file),
+            _ => std::process::exit(1),
+        }
+        if section.creds.loggedin {
+            // section.new_site(args.values_of("site"))
+            println!("{:?}", args.value_of("site"));
+        }
         std::process::exit(1);
     }
 }
