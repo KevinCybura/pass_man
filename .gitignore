@@ -1,4 +1,5 @@
+.vscode
+#Rust stuff
 /target
 **/*.rs.bk
 creds.txt
-*.lock

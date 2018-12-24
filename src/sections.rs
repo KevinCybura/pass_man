@@ -1,24 +1,38 @@
 use creds::Cred;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::prelude::*;
 
+#[derive(Debug)]
 pub struct Site {
     site: String,
     username: String,
     password: String,
 }
+
+impl Site {
+    pub fn new() -> Site {
+        Site {
+            site: String::new(),
+            username: String::new(),
+            password: String::new(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum SectionsError {
     InvalidCredentials,
     FsError(std::io::Error),
-    MissingFile
+    MissingFile,
+    InputError(std::io::Error),
 }
 impl From<std::io::Error> for SectionsError {
     fn from(e: std::io::Error) -> SectionsError {
         SectionsError::FsError(e)
     }
 }
+#[derive(Debug)]
 pub struct Sections {
     pub creds: Cred,
     pub sites: Vec<Site>,
@@ -31,27 +45,63 @@ impl Sections {
         }
     }
     pub fn write_sections(&self) -> Result<(), SectionsError> {
-        let mut file = match File::open("creds.txt") {
+        let mut file = match OpenOptions::new().read(true).write(true).open("creds.txt") {
             Ok(file) => {
                 info!("Opening file:");
                 file
             }
             Err(e) => {
-                warn!("Unable to open file: {}", e);
+                error!("Unable to open file: {}", e);
                 return Err(SectionsError::FsError(e));
             }
         };
         let mut buf = String::new();
         buf.push_str(format!("Creds\npassword:{}\n", self.creds.password).as_str());
-        file.write(buf.as_bytes())?;
         if !self.sites.is_empty() {
-            buf.clear();
             buf.push_str("Sites\n");
             for site in &self.sites {
-                buf.push_str(format!("site:{},username:{},password:{}\n",site.site, site.username, site.password).as_str());
+                buf.push_str(
+                    format!(
+                        "site:{},username:{},password:{}\n",
+                        site.site, site.username, site.password
+                    )
+                    .as_str(),
+                );
             }
-            file.write(buf.as_bytes())?;
         }
+        file.write_all(buf.as_bytes())?;
+        Ok(())
+    }
+    pub fn new_site<'a>(&mut self, site: &'a str) -> Result<(), SectionsError> {
+        info!("Attempting to create new site");
+        println!("Creating new site {}.", site);
+        let mut s = Site::new();
+        s.site.push_str(site);
+        println!("Enter username for {}", site);
+        match io::stdin().read_line(&mut s.username) {
+            Ok(_) => {
+                s.username.retain(|c| c != '\n');
+                info!("Successfully read username: {}", s.username);
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+                error!("{}", e);
+                return Err(SectionsError::InputError(e));
+            }
+        }
+        println!("Enter password for {}", site);
+        match io::stdin().read_line(&mut s.password) {
+            Ok(_) => {
+                s.password.retain(|c| c != '\n');
+                info!("Successfully read password: {}", s.password);
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+                error!("{}", e);
+                return Err(SectionsError::InputError(e));
+            }
+        }
+        self.sites.push(s);
         Ok(())
     }
 }
@@ -79,14 +129,13 @@ pub fn get_creds() -> Result<Vec<String>, SectionsError> {
             file
         }
         Err(e) => {
-            warn!("Unable to open file: {}", e);
+            error!("Unable to open file: {}", e);
             return Err(SectionsError::FsError(e));
         }
     };
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
-    let file_creds = parse_file_creds(&contents);
-    file_creds
+    parse_file_creds(&contents)
 }
 
 fn parse_file_creds(contents: &str) -> Result<Vec<String>, SectionsError> {
@@ -104,4 +153,59 @@ fn parse_file_creds(contents: &str) -> Result<Vec<String>, SectionsError> {
     }
     error!("File creds empty: {:?}", file_creds);
     Err(SectionsError::MissingFile)
+}
+
+pub fn parse_file() -> Result<Sections, SectionsError> {
+    let mut file = match File::open("creds.txt") {
+        Ok(f) => {
+            info!("File successfully opened");
+            f
+        }
+        Err(e) => {
+            error!("Unable to open file: {}", e);
+            return Err(SectionsError::FsError(e));
+        }
+    };
+    let mut contents = String::new();
+    file.read_to_string(&mut contents);
+    let mut section = (false, false);
+    let mut result = Sections::new();
+    for line in contents.lines() {
+        let words: Vec<&str> = line.split(',').collect();
+        if words.len() == 1 {
+            if words[0] == "Creds" {
+                section.0 = true;
+                section.1 = false;
+            } else if words[0] == "Sites" {
+                section.0 = false;
+                section.1 = true;
+            }
+        } else {
+            let mut s = Site::new();
+            if section.0 {
+                if line == "password" {
+                    result.creds.password.push_str(line);
+                }
+            } else if section.1 {
+                for word in words {
+                    let site_creds: Vec<&str> = word.split(':').collect();
+                    if site_creds[0] == "site" {
+                        s.site.push_str(site_creds[1]);
+                    } else if site_creds[0] == "username" {
+                        s.username.push_str(site_creds[1]);
+                    } else if site_creds[0] == "password" {
+                        s.password.push_str(site_creds[1]);
+                    } else {
+                        warn!(
+                            "Unkown Site parameter: {}\n for str: {}",
+                            site_creds[0], word
+                        );
+                    }
+                }
+                result.sites.push(s);
+            }
+        }
+    }
+
+    Ok(result)
 }

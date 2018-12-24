@@ -1,6 +1,8 @@
+use sections::{get_creds, Sections, SectionsError};
 use std::io;
 use std::io::prelude::*;
-use sections::SectionsError;
+
+#[derive(Debug)]
 pub struct Cred {
     pub password: String,
     pub loggedin: bool,
@@ -14,16 +16,13 @@ impl Cred {
         }
     }
 
-    pub fn login(&mut self, file: Vec<String>) -> Result<(), SectionsError> {
+    pub fn login(&mut self, file: &[String]) -> Result<(), SectionsError> {
         info!("login");
         print!("Enter password: ");
         io::stdout().flush().unwrap();
         match io::stdin().read_line(&mut self.password) {
             Ok(_) => {
-                if let Some(n) = self.password.rfind('\n') {
-                    debug!("found \\n pos: {}", n);
-                    self.password.remove(n);
-                }
+                self.password.retain(|c| c != '\n');
             }
             Err(e) => {
                 error!("Something went wrong with input: {}", e);
@@ -37,10 +36,27 @@ impl Cred {
             self.loggedin
         });
         if !self.loggedin {
-            info!("Incorrect Password: {}", self.password);
+            error!("Incorrect Password: {}", self.password);
             eprint!("Incorrect Password: {}", self.password);
             return Err(SectionsError::InvalidCredentials);
         }
         Ok(())
+    }
+}
+
+pub fn authenicate_user(section: &mut Sections) {
+    let file = match get_creds() {
+        Ok(file) => file,
+        Err(e) => {
+            error!("Fatal error when loading file: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+    match section.creds.login(&file) {
+        Ok(_) => info!("Successful login"),
+        Err(e) => {
+            eprint!("Invalid credentials: {:?}", e);
+            debug!("Invalid credentials: {:?}", e);
+        }
     }
 }
