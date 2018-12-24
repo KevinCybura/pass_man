@@ -1,6 +1,6 @@
+use sections::SectionsError;
 use std::io;
 use std::io::prelude::*;
-use sections::SectionsError;
 pub struct Cred {
     pub password: String,
     pub loggedin: bool,

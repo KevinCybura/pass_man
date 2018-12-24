@@ -71,7 +71,26 @@ fn main() {
         // }
         if section.creds.loggedin {
             // section.new_site(args.values_of("site"))
-            println!("{:?}", args.value_of("site"));
+            match args.value_of("site") {
+                Some(s) => {
+                    section.new_site(&s).unwrap();
+                }
+                None => {
+                    eprint!("Site name is required");
+                    warn!("Missing site");
+                }
+            }
+
+            match section.write_sections() {
+                Ok(_) => {
+                    info!("Write sections successful");
+                }
+                Err(e) => {
+                    eprintln!("Error with writing sections: {:?}", e);
+                    warn!("Error with writing sections: {:?}", e);
+                }
+            }
+            // println!("{:?}", args.value_of("site"));
         }
         std::process::exit(1);
     }

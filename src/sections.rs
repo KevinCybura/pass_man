@@ -1,5 +1,5 @@
 use creds::Cred;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::prelude::*;
 
@@ -8,11 +8,23 @@ pub struct Site {
     username: String,
     password: String,
 }
+
+impl Site {
+    pub fn new() -> Site {
+        Site {
+            site: String::new(),
+            username: String::new(),
+            password: String::new(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum SectionsError {
     InvalidCredentials,
     FsError(std::io::Error),
-    MissingFile
+    MissingFile,
+    InputError(std::io::Error),
 }
 impl From<std::io::Error> for SectionsError {
     fn from(e: std::io::Error) -> SectionsError {
@@ -31,7 +43,7 @@ impl Sections {
         }
     }
     pub fn write_sections(&self) -> Result<(), SectionsError> {
-        let mut file = match File::open("creds.txt") {
+        let mut file = match OpenOptions::new().read(true).write(true).open("creds.txt") {
             Ok(file) => {
                 info!("Opening file:");
                 file
@@ -41,17 +53,61 @@ impl Sections {
                 return Err(SectionsError::FsError(e));
             }
         };
+        // let mut file = match File::open("creds.txt") {
+        //     Ok(file) => {
+        //         info!("Opening file:");
+        //         file
+        //     }
+        //     Err(e) => {
+        //         warn!("Unable to open file: {}", e);
+        //         return Err(SectionsError::FsError(e));
+        //     }
+        // };
         let mut buf = String::new();
         buf.push_str(format!("Creds\npassword:{}\n", self.creds.password).as_str());
-        file.write(buf.as_bytes())?;
         if !self.sites.is_empty() {
-            buf.clear();
             buf.push_str("Sites\n");
             for site in &self.sites {
-                buf.push_str(format!("site:{},username:{},password:{}\n",site.site, site.username, site.password).as_str());
+                buf.push_str(
+                    format!(
+                        "site:{},username:{},password:{}\n",
+                        site.site, site.username, site.password
+                    )
+                    .as_str(),
+                );
             }
-            file.write(buf.as_bytes())?;
         }
+        file.write_all(buf.as_bytes())?;
+        Ok(())
+    }
+    pub fn new_site<'a>(&mut self, site: &'a str) -> Result<(), SectionsError> {
+        info!("Attempting to create new site");
+        println!("Creating new site {}.", site);
+        let mut s = Site::new();
+        s.site.push_str(site);
+        println!("Enter username for {}", site);
+        match io::stdin().read_line(&mut s.username) {
+            Ok(_) => {
+                info!("Successfully read username: {}", s.username);
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+                warn!("{}", e);
+                return Err(SectionsError::InputError(e));
+            }
+        }
+        println!("Enter password for {}", site);
+        match io::stdin().read_line(&mut s.password) {
+            Ok(_) => {
+                info!("Successfully read password: {}", s.password);
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+                warn!("{}", e);
+                return Err(SectionsError::InputError(e));
+            }
+        }
+        self.sites.push(s);
         Ok(())
     }
 }
