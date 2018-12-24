@@ -88,6 +88,7 @@ impl Sections {
         println!("Enter username for {}", site);
         match io::stdin().read_line(&mut s.username) {
             Ok(_) => {
+                s.username.retain(|c| c != '\n');
                 info!("Successfully read username: {}", s.username);
             }
             Err(e) => {
@@ -99,6 +100,7 @@ impl Sections {
         println!("Enter password for {}", site);
         match io::stdin().read_line(&mut s.password) {
             Ok(_) => {
+                s.password.retain(|c| c != '\n');
                 info!("Successfully read password: {}", s.password);
             }
             Err(e) => {

@@ -20,10 +20,7 @@ impl Cred {
         io::stdout().flush().unwrap();
         match io::stdin().read_line(&mut self.password) {
             Ok(_) => {
-                if let Some(n) = self.password.rfind('\n') {
-                    debug!("found \\n pos: {}", n);
-                    self.password.remove(n);
-                }
+                self.password.retain(|c| c != '\n');
             }
             Err(e) => {
                 error!("Something went wrong with input: {}", e);
