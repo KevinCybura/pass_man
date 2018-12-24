@@ -54,21 +54,7 @@ fn main() {
         }
     }
     if args.is_present("site") {
-        let file = match sections::get_creds() {
-            Ok(file) => file,
-            _ => std::process::exit(1),
-        };
-        match section.creds.login(file) {
-            Ok(_) => info!("Successful login"),
-            Err(e) => {
-                eprint!("Invalid credentials: {:?}", e);
-                debug!("Invalid credentials: {:?}", e);
-            }
-        }
-        // match sections::get_creds() {
-        //     Ok(file) => section.creds.login(file),
-        //     _ => std::process::exit(1),
-        // }
+        creds::authenicate_user(&mut section);
         if section.creds.loggedin {
             // section.new_site(args.values_of("site"))
             match args.value_of("site") {
@@ -92,7 +78,20 @@ fn main() {
             }
             // println!("{:?}", args.value_of("site"));
         }
-        std::process::exit(1);
+    }
+    if args.is_present("get") {
+        creds::authenicate_user(&mut section);
+        let section = match sections::parse_file() {
+            Ok(section) => {
+                info!("File loaded into sections struct: {:?}", section);
+                section
+            }
+            Err(e) => {
+                error!("Failed to load file: {:?}", e);
+                std::process::exit(1);
+            }
+        };
+        println!("{:?}", section.sites);
     }
 }
 
@@ -109,5 +108,11 @@ fn parse_arg<'a>() -> ArgMatches<'a> {
                 .takes_value(true),
         )
         .arg(Arg::with_name("new").short("n").long("new"))
+        .arg(
+            Arg::with_name("get")
+                .short("g")
+                .long("get")
+                .takes_value(true),
+        )
         .get_matches()
 }
