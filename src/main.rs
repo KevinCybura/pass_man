@@ -7,6 +7,7 @@ mod creds;
 mod sections;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
+use sections::Site;
 use std::io;
 use std::io::prelude::Write;
 use std::path::Path;
@@ -91,7 +92,29 @@ fn main() {
                 std::process::exit(1);
             }
         };
-        println!("{:?}", section.sites);
+        // section.print_sections();
+        match args.value_of("get") {
+            Some(s) => {
+                let mut site = Site::new();
+                site.site = s.to_string();
+                match section.sites.get(&site) {
+                    Some(s) => {
+                        println!(
+                            "site: {}, username: {}, password: {}",
+                            s.site, s.username, s.password
+                        );
+                    }
+                    None => {
+                        warn!("Site {} does not exist", site.site);
+                        eprintln!("Site {} does not exist", site.site);
+                    }
+                }
+            }
+            None => {
+                warn!("Site name is required for get");
+                eprintln!("Site name is require for get");
+            }
+        }
     }
 }
 

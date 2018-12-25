@@ -7,9 +7,9 @@ use std::io::prelude::*;
 
 #[derive(Debug)]
 pub struct Site {
-    site: String,
-    username: String,
-    password: String,
+    pub site: String,
+    pub username: String,
+    pub password: String,
 }
 
 impl Site {
@@ -23,14 +23,14 @@ impl Site {
 }
 impl PartialEq for Site {
     fn eq(&self, s: &Site) -> bool {
-        self.site == s.site
+        self.site.to_lowercase() == s.site.to_lowercase()
     }
 }
 impl Eq for Site {}
 
 impl Hash for Site {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.site.hash(state);
+        self.site.to_lowercase().hash(state);
     }
 }
 #[derive(Debug)]
@@ -114,15 +114,13 @@ impl Sections {
                 return Err(SectionsError::InputError(e));
             }
         }
-        match self.sites.contains(&s) {
-            true => {
-                warn!("Site already present: {:?}", s);
-                println!("Site already present{:?}", s);
-            }
-            false => {
-                self.sites.insert(s);
-            }
+        if self.sites.contains(&s) {
+            warn!("Site already present: {:?}", s);
+            println!("Site already present{:?}", s);
+        } else {
+            self.sites.insert(s);
         }
+
         Ok(())
     }
 }
@@ -211,20 +209,17 @@ pub fn parse_file() -> Result<Sections, SectionsError> {
                         );
                     }
                 }
-                match result.sites.contains(&s) {
-                    true => {
-                        error!(
-                            "Fatal Error: File contains multiple copies of site: {:?}",
-                            s
-                        );
-                        eprintln!(
-                            "Fatal Error: File contains multiple copies of site: {:?}",
-                            s
-                        );
-                    }
-                    false => {
-                        result.sites.insert(s);
-                    }
+                if result.sites.contains(&s) {
+                    error!(
+                        "Fatal Error: File contains multiple copies of site: {:?}",
+                        s
+                    );
+                    eprintln!(
+                        "Fatal Error: File contains multiple copies of site: {:?}",
+                        s
+                    );
+                } else {
+                    result.sites.insert(s);
                 }
             }
         }
