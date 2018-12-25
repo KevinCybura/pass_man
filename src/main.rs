@@ -31,7 +31,7 @@ fn main() {
                     "y" => {
                         // Require the user to enter password here and validate that its corret
                         std::fs::remove_file("creds.txt").unwrap();
-                        let user = sections::new_user();
+                        let user = creds::new_user();
                         let mut file = sections::initialize_file();
                         file.write_fmt(format_args!("password: {}", user.password))
                             .unwrap();
@@ -47,7 +47,7 @@ fn main() {
                 Err(error) => eprintln!("Error: {}", error),
             }
         } else {
-            let user = sections::new_user();
+            let user = creds::new_user();
             let mut file = sections::initialize_file();
             file.write_fmt(format_args!("password: {}", user.password))
                 .unwrap();

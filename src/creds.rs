@@ -44,6 +44,17 @@ impl Cred {
     }
 }
 
+pub fn new_user() -> Cred {
+    let mut cred = Cred::new();
+    println!("Enter new password: ");
+    match io::stdin().read_line(&mut cred.password) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Error {}", e);
+        }
+    }
+    cred
+}
 pub fn authenicate_user(section: &mut Sections) {
     let file = match get_creds() {
         Ok(file) => file,

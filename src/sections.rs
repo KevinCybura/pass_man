@@ -1,5 +1,7 @@
 use creds::Cred;
+use std::collections::HashSet;
 use std::fs::{File, OpenOptions};
+use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::prelude::*;
 
@@ -19,7 +21,18 @@ impl Site {
         }
     }
 }
+impl PartialEq for Site {
+    fn eq(&self, s: &Site) -> bool {
+        self.site == s.site
+    }
+}
+impl Eq for Site {}
 
+impl Hash for Site {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.site.hash(state);
+    }
+}
 #[derive(Debug)]
 pub enum SectionsError {
     InvalidCredentials,
@@ -35,13 +48,13 @@ impl From<std::io::Error> for SectionsError {
 #[derive(Debug)]
 pub struct Sections {
     pub creds: Cred,
-    pub sites: Vec<Site>,
+    pub sites: HashSet<Site>,
 }
 impl Sections {
     pub fn new() -> Sections {
         Sections {
             creds: Cred::new(),
-            sites: Vec::new(),
+            sites: HashSet::new(),
         }
     }
     pub fn write_sections(&self) -> Result<(), SectionsError> {
@@ -101,21 +114,17 @@ impl Sections {
                 return Err(SectionsError::InputError(e));
             }
         }
-        self.sites.push(s);
+        match self.sites.contains(&s) {
+            true => {
+                warn!("Site already present: {:?}", s);
+                println!("Site already present{:?}", s);
+            }
+            false => {
+                self.sites.insert(s);
+            }
+        }
         Ok(())
     }
-}
-
-pub fn new_user() -> Cred {
-    let mut cred = Cred::new();
-    println!("Enter new password: ");
-    match io::stdin().read_line(&mut cred.password) {
-        Ok(_) => {}
-        Err(e) => {
-            println!("Error {}", e);
-        }
-    }
-    cred
 }
 
 pub fn initialize_file() -> File {
@@ -167,7 +176,7 @@ pub fn parse_file() -> Result<Sections, SectionsError> {
         }
     };
     let mut contents = String::new();
-    file.read_to_string(&mut contents);
+    file.read_to_string(&mut contents)?;
     let mut section = (false, false);
     let mut result = Sections::new();
     for line in contents.lines() {
@@ -202,10 +211,23 @@ pub fn parse_file() -> Result<Sections, SectionsError> {
                         );
                     }
                 }
-                result.sites.push(s);
+                match result.sites.contains(&s) {
+                    true => {
+                        error!(
+                            "Fatal Error: File contains multiple copies of site: {:?}",
+                            s
+                        );
+                        eprintln!(
+                            "Fatal Error: File contains multiple copies of site: {:?}",
+                            s
+                        );
+                    }
+                    false => {
+                        result.sites.insert(s);
+                    }
+                }
             }
         }
     }
-
     Ok(result)
 }
