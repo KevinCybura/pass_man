@@ -54,45 +54,40 @@ fn main() {
                 .unwrap();
         }
     }
-    if args.is_present("site") {
-        creds::authenicate_user(&mut section);
-        if section.creds.loggedin {
-            // section.new_site(args.values_of("site"))
-            match args.value_of("site") {
-                Some(s) => {
-                    section.new_site(&s).unwrap();
-                }
-                None => {
-                    eprint!("Site name is required");
-                    warn!("Missing site");
-                }
-            }
+    creds::authenicate_user(&mut section);
 
-            match section.write_sections() {
-                Ok(_) => {
-                    info!("Write sections successful");
-                }
-                Err(e) => {
-                    eprintln!("Error with writing sections: {:?}", e);
-                    warn!("Error with writing sections: {:?}", e);
-                }
+    match sections::parse_file(&mut section) {
+        Ok(section) => {
+            info!("File loaded into sections struct: {:?}", section);
+            section
+        }
+        Err(e) => {
+            error!("Failed to load file: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+    if args.is_present("site") && section.creds.loggedin {
+        match args.value_of("site") {
+            Some(s) => {
+                section.new_site(&s).unwrap();
             }
-            // println!("{:?}", args.value_of("site"));
+            None => {
+                eprint!("Site name is required");
+                warn!("Missing site");
+            }
+        }
+
+        match section.write_sections() {
+            Ok(_) => {
+                info!("Write sections successful");
+            }
+            Err(e) => {
+                eprintln!("Error with writing sections: {:?}", e);
+                warn!("Error with writing sections: {:?}", e);
+            }
         }
     }
     if args.is_present("get") {
-        creds::authenicate_user(&mut section);
-        let section = match sections::parse_file() {
-            Ok(section) => {
-                info!("File loaded into sections struct: {:?}", section);
-                section
-            }
-            Err(e) => {
-                error!("Failed to load file: {:?}", e);
-                std::process::exit(1);
-            }
-        };
-        // section.print_sections();
         match args.value_of("get") {
             Some(s) => {
                 let mut site = Site::new();
@@ -116,6 +111,12 @@ fn main() {
             }
         }
     }
+
+    if args.is_present("all") {
+        for s in &section.sites {
+            println!("section: {:?}", s);
+        }
+    }
 }
 
 fn parse_arg<'a>() -> ArgMatches<'a> {
@@ -137,5 +138,6 @@ fn parse_arg<'a>() -> ArgMatches<'a> {
                 .long("get")
                 .takes_value(true),
         )
+        .arg(Arg::with_name("all").short("a").long("all"))
         .get_matches()
 }

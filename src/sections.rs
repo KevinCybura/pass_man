@@ -21,11 +21,13 @@ impl Site {
         }
     }
 }
+
 impl PartialEq for Site {
     fn eq(&self, s: &Site) -> bool {
         self.site.to_lowercase() == s.site.to_lowercase()
     }
 }
+
 impl Eq for Site {}
 
 impl Hash for Site {
@@ -33,6 +35,7 @@ impl Hash for Site {
         self.site.to_lowercase().hash(state);
     }
 }
+
 #[derive(Debug)]
 pub enum SectionsError {
     InvalidCredentials,
@@ -40,16 +43,19 @@ pub enum SectionsError {
     MissingFile,
     InputError(std::io::Error),
 }
+
 impl From<std::io::Error> for SectionsError {
     fn from(e: std::io::Error) -> SectionsError {
         SectionsError::FsError(e)
     }
 }
+
 #[derive(Debug)]
 pub struct Sections {
     pub creds: Cred,
     pub sites: HashSet<Site>,
 }
+
 impl Sections {
     pub fn new() -> Sections {
         Sections {
@@ -85,6 +91,7 @@ impl Sections {
         file.write_all(buf.as_bytes())?;
         Ok(())
     }
+
     pub fn new_site<'a>(&mut self, site: &'a str) -> Result<(), SectionsError> {
         info!("Attempting to create new site");
         println!("Creating new site {}.", site);
@@ -162,7 +169,7 @@ fn parse_file_creds(contents: &str) -> Result<Vec<String>, SectionsError> {
     Err(SectionsError::MissingFile)
 }
 
-pub fn parse_file() -> Result<Sections, SectionsError> {
+pub fn parse_file(result: &mut Sections) -> Result<(), SectionsError> {
     let mut file = match File::open("creds.txt") {
         Ok(f) => {
             info!("File successfully opened");
@@ -176,7 +183,6 @@ pub fn parse_file() -> Result<Sections, SectionsError> {
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     let mut section = (false, false);
-    let mut result = Sections::new();
     for line in contents.lines() {
         let words: Vec<&str> = line.split(',').collect();
         if words.len() == 1 {
@@ -224,5 +230,5 @@ pub fn parse_file() -> Result<Sections, SectionsError> {
             }
         }
     }
-    Ok(result)
+    Ok(())
 }

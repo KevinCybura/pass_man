@@ -55,12 +55,12 @@ pub fn new_user() -> Cred {
     }
     cred
 }
-pub fn authenicate_user(section: &mut Sections) {
+pub fn authenicate_user(section: &mut Sections) -> bool {
     let file = match get_creds() {
         Ok(file) => file,
         Err(e) => {
             error!("Fatal error when loading file: {:?}", e);
-            std::process::exit(1);
+            return false;
         }
     };
     match section.creds.login(&file) {
@@ -68,6 +68,8 @@ pub fn authenicate_user(section: &mut Sections) {
         Err(e) => {
             eprint!("Invalid credentials: {:?}", e);
             debug!("Invalid credentials: {:?}", e);
+            return false;
         }
     }
+    true
 }
